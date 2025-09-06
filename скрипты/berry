@@ -1,0 +1,84 @@
+#!/bin/bash
+
+# Перенаправляем все ошибки в /dev/null
+#exec 2>/dev/null
+
+source $HOME/.cherry/config
+
+# Проверяем, существует ли папка
+if [ ! -d "$WALLPAPER_DIR" ]; then
+    echo "Папка $WALLPAPER_DIR не существует!"
+    exit 1
+fi
+
+# Активируем виртуальное окружение один раз
+source $PYWAL_VENV/bin/activate
+
+# Основной цикл смены обоев
+while true; do
+    touch $HISTORY
+
+    # Выбираем случайный файл
+    RAND_WAL="placeholder"
+    while true
+    do
+        RAND_WAL=$(find "$WALLPAPER_DIR" -type f \( -name "*.jpg" -o -name "*.png" -o -name "*.jpeg" \) | shuf -n 1)
+        # Проверяем, что файл существует и не пустой
+        if [ ! -f "$RAND_WAL" ] || [ ! -s "$RAND_WAL" ]; then
+            continue
+        fi
+        
+        found=false
+        for old in $(cat $HISTORY); do
+            if [ "$RAND_WAL" == "$old" ]; then
+                found=true
+                break
+            fi
+        done
+        
+        if ! $found; then
+            break
+        fi
+    done
+
+    echo "Устанавливаем: $(basename "$RAND_WAL")"
+
+    # Заносим в историю и обрезаем
+    echo "$RAND_WAL" >> $HISTORY
+    if [ $(wc -l < $HISTORY) -gt $AMOUNT ]; then
+        tail -n $AMOUNT $HISTORY > /tmp/wals.txt
+        mv /tmp/wals.txt $HISTORY
+    fi
+
+    # Устанавливаем обои (для GNOME)
+    if $DARK; then
+        gsettings set org.gnome.desktop.background picture-uri-dark "file://$RAND_WAL"
+    else
+        gsettings set org.gnome.desktop.background picture-uri "file://$RAND_WAL"
+    fi
+
+    # Применяем pywal с обработкой ошибок
+    if ! wal -i "$RAND_WAL" --backend colorz 2>/tmp/wal_error.log; then
+        #echo "Ошибка pywal, пробуем другой бэкенд..."
+        if ! wal -i "$RAND_WAL" --backend haishoku 2>/tmp/wal_error.log; then
+            #echo "Не удалось применить pywal для: $RAND_WAL"
+            cat /tmp/wal_error.log
+        fi
+    fi
+
+    TELEGRAM_BG_DIR="$HOME/Изображения/обои телеграм"
+    TELEGRAM_BG_PATH="$TELEGRAM_BG_DIR/текущие обои.jpg"
+
+    # Создаем папку и копируем обои
+    mkdir -p "$TELEGRAM_BG_DIR"
+    cp "$RAND_WAL" "$TELEGRAM_BG_PATH"
+
+    # Очищаем старые фоны (кроме текущего)
+    find "$TELEGRAM_BG_DIR" -type f -not -name "текущие обои.jpg" -delete 2>/dev/null
+
+    # Ждем указанный интервал перед следующей сменой
+    sleep $INTERVAL
+done
+
+# Деактивируем виртуальное окружение при выходе
+deactivate
