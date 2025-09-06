@@ -1,0 +1,56 @@
+#!/bin/bash
+
+source $HOME/.cherry/config
+
+# Проверяем, существует ли папка
+if [ ! -d "$WAL_DIR" ]; then
+    echo "Папка $WAL_DIR не существует!"
+    exit 1
+fi
+
+touch $HISTORY
+
+# Выбираем случайный файл
+RAND_WAL="placeholder"
+while true
+do
+RAND_WAL=$(find "$WAL_DIR" -type f | shuf -n 1)
+for old in $(cat $HISTORY)
+do
+if [ $RAND_WAL == $old ]; 
+then
+continue 2
+fi
+done
+break
+done
+
+# Заносим в историю и обрезаем
+echo $RAND_WAL >> $HISTORY
+if [ $(wc -l < $HISTORY) -gt $AMOUNT ]; then
+tail -n $AMOUNT  $HISTORY > /tmp/wals.txt
+mv /tmp/wals.txt $HISTORY
+fi
+
+# Устанавливаем обои (для GNOME)
+if $DARK
+then
+gsettings set org.gnome.desktop.background picture-uri-dark "file://$RAND_WAL"
+else
+gsettings set org.gnome.desktop.background picture-uri "file://$RAND_WAL"
+fi
+
+# Применяем pywal
+source $PYWAL_VENV/bin/activate
+wal -i "$RAND_WAL"
+deactivate
+
+TELEGRAM_BG_DIR="$HOME/Изображения/обои телеграм"
+TELEGRAM_BG_PATH="$TELEGRAM_BG_DIR/текущие обои.jpg"  # Фиксированное имя
+
+# Создаем папку и копируем обои
+mkdir -p "$TELEGRAM_BG_DIR"
+cp "$RAND_WAL" "$TELEGRAM_BG_PATH"
+
+# Очищаем старые фоны (кроме текущего)
+find "$TELEGRAM_BG_DIR" -type f -not -name "текущие обои.jpg" -delete
