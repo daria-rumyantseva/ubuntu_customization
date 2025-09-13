@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Файлы для обработки
+FILE1="/var/lib/snapd/desktop/applications/firmware-updater_firmware-updater.desktop"
+FILE2="/var/lib/snapd/desktop/applications/firmware-updater_firmware-updater-app.desktop"
+
+# Заменяем строки в файлах
+sudo sed -i 's|Icon=/snap/firmware-updater/167/meta/gui/icon.png|Icon=/home/dashulya/.icons/Kitty-icons/setup.png|g' "$FILE1"
+sudo sed -i 's|Icon=/snap/firmware-updater/167/meta/gui/icon.png|Icon=/home/dashulya/.icons/Kitty-icons/setup.png|g' "$FILE2"
