@@ -5,7 +5,6 @@
 
 import gi
 import os
-import tempfile
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
@@ -60,12 +59,28 @@ class GhostPanel:
         self.window.add(self.fixed)
         
         # Список путей к изображениям
-        self.image_paths = [
-            "/home/dashulya/Изображения/фон/панелька/1.png",
-            "/home/dashulya/Изображения/фон/панелька/2.png",
-            "/home/dashulya/Изображения/фон/панелька/3.png",
-            "/home/dashulya/Изображения/фон/панелька/4.png"
-        ]
+        home_dir = os.path.expanduser('~')
+        config_path = f"{home_dir}/.config/milota"
+        config_file = f"{config_path}/milota.conf"
+        # Если конфига не существует, создаём его
+        if not os.path.exists(config_file): 
+            # Создаём структуру каталогов
+            os.mkdir(config_path)
+            # Создаём пустой конфиг
+            with open(config_file, 'w') as _:
+                pass
+
+        paths = []
+        with open(config_file, 'r') as conf:
+            paths = conf.readlines()
+
+        # self.image_paths = [
+        #     "/home/dashulya/Изображения/фон/панелька/1.png",
+        #     "/home/dashulya/Изображения/фон/панелька/2.png",
+        #     "/home/dashulya/Изображения/фон/панелька/3.png",
+        #     "/home/dashulya/Изображения/фон/панелька/4.png"
+        # ]
+        self.image_paths = paths
         
         # Загружаем все изображения
         self.images_data = []
@@ -97,7 +112,7 @@ class GhostPanel:
         print(f"📏 Размер панели: {self.screen_width}x{self.panel_height}")
         print(f"🖼️  Загружено изображений: {len(self.images_data)}")
         print("🖱️  Правый клик для выхода")
-        print(f"🚀 Начинаем с изображения 1")
+        print("🚀 Начинаем с изображения 1")
         
     def load_all_images(self):
         """Загружаем все изображения через Pillow"""
@@ -108,7 +123,7 @@ class GhostPanel:
             print(f"   Путь: {image_path}")
             
             if not os.path.exists(image_path):
-                print(f"   ❌ Файл не найден!")
+                print("   ❌ Файл не найден!")
                 continue
                 
             try:
@@ -154,7 +169,7 @@ class GhostPanel:
                         self.images_data.append(image_data)
                         print(f"   ✅ Изображение {i+1} успешно загружено")
                     else:
-                        print(f"   ❌ Не удалось конвертировать изображение")
+                        print("   ❌ Не удалось конвертировать изображение")
                     
             except Exception as e:
                 print(f"   ❌ Ошибка загрузки: {e}")
